@@ -1,1 +1,206 @@
-import React, { useState } from 'react';\nimport { useNavigate } from 'react-router-dom';\nimport { useAuth } from '../context/AuthContext';\nimport { authService } from '../services/api';\n\nconst Register: React.FC = () => {\n  const navigate = useNavigate();\n  const { login } = useAuth();\n  const [loading, setLoading] = useState(false);\n  const [error, setError] = useState('');\n  const [formData, setFormData] = useState({\n    fullName: '',\n    age: '',\n    gender: 'M',\n    email: '',\n    password: '',\n    confirmPassword: '',\n  });\n\n  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {\n    const { name, value } = e.target;\n    setFormData((prev) => ({\n      ...prev,\n      [name]: value,\n    }));\n  };\n\n  const handleSubmit = async (e: React.FormEvent) => {\n    e.preventDefault();\n    setError('');\n    setLoading(true);\n\n    try {\n      if (!formData.fullName || !formData.email || !formData.password) {\n        throw new Error('Preencha todos os campos');\n      }\n\n      if (formData.password.length < 6) {\n        throw new Error('Senha deve ter minimo 6 caracteres');\n      }\n\n      if (formData.password !== formData.confirmPassword) {\n        throw new Error('Senhas nao conferem');\n      }\n\n      const response = await authService.register({\n        fullName: formData.fullName,\n        age: parseInt(formData.age),\n        gender: formData.gender,\n        email: formData.email,\n        password: formData.password,\n        confirmPassword: formData.confirmPassword,\n      });\n\n      const { token, user } = response.data;\n      login(token, user);\n      navigate('/dashboard');\n    } catch (err: any) {\n      setError(err.response?.data?.error || err.message || 'Erro ao registrar');\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  return (\n    <div className=\"min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center py-12 px-4\">\n      <div className=\"w-full max-w-md bg-white rounded-2xl shadow-xl p-8\">\n        <h2 className=\"text-3xl font-bold text-center mb-2 text-gray-900\">Criar Conta</h2>\n        <p className=\"text-center text-gray-600 mb-8\">Junte-se a nossa comunidade fitness</p>\n\n        {error && (\n          <div className=\"mb-4 p-4 bg-red-100 text-red-700 rounded-lg\">\n            {error}\n          </div>\n        )}\n\n        <form onSubmit={handleSubmit} className=\"space-y-4\">\n          <div>\n            <label className=\"block text-sm font-medium text-gray-700 mb-2\">Nome Completo</label>\n            <input\n              type=\"text\"\n              name=\"fullName\"\n              value={formData.fullName}\n              onChange={handleChange}\n              placeholder=\"Seu nome\"\n              className=\"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500\"\n            />\n          </div>\n\n          <div>\n            <label className=\"block text-sm font-medium text-gray-700 mb-2\">Idade</label>\n            <input\n              type=\"number\"\n              name=\"age\"\n              value={formData.age}\n              onChange={handleChange}\n              min=\"1\"\n              max=\"150\"\n              className=\"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500\"\n            />\n          </div>\n\n          <div>\n            <label className=\"block text-sm font-medium text-gray-700 mb-2\">Genero</label>\n            <select\n              name=\"gender\"\n              value={formData.gender}\n              onChange={handleChange}\n              className=\"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500\"\n            >\n              <option value=\"M\">Masculino</option>\n              <option value=\"F\">Feminino</option>\n              <option value=\"Outro\">Outro</option>\n            </select>\n          </div>\n\n          <div>\n            <label className=\"block text-sm font-medium text-gray-700 mb-2\">Email</label>\n            <input\n              type=\"email\"\n              name=\"email\"\n              value={formData.email}\n              onChange={handleChange}\n              className=\"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500\"\n            />\n          </div>\n\n          <div>\n            <label className=\"block text-sm font-medium text-gray-700 mb-2\">Senha</label>\n            <input\n              type=\"password\"\n              name=\"password\"\n              value={formData.password}\n              onChange={handleChange}\n              className=\"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500\"\n            />\n          </div>\n\n          <div>\n            <label className=\"block text-sm font-medium text-gray-700 mb-2\">Confirmar Senha</label>\n            <input\n              type=\"password\"\n              name=\"confirmPassword\"\n              value={formData.confirmPassword}\n              onChange={handleChange}\n              className=\"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500\"\n            />\n          </div>\n\n          <button\n            type=\"submit\"\n            disabled={loading}\n            className=\"w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50\"\n          >\n            {loading ? 'Cadastrando...' : 'Cadastrar'}\n          </button>\n        </form>\n\n        <p className=\"text-center text-gray-600 mt-6\">\n          Ja possui conta? <a href=\"/login\" className=\"text-blue-600 hover:text-blue-700 font-semibold\">Faca login</a>\n        </p>\n      </div>\n    </div>\n  );\n};\n\nexport default Register;
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { authService } from '../services/api';
+
+const Register: React.FC = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    fullName: '',
+    age: '',
+    gender: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (!formData.fullName || !formData.age || !formData.gender || !formData.email || !formData.password || !formData.confirmPassword) {
+        throw new Error('Por favor, preencha todos os campos');
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        throw new Error('As senhas nao coincidem');
+      }
+
+      if (formData.password.length < 6) {
+        throw new Error('A senha deve ter no minimo 6 caracteres');
+      }
+
+      const response = await authService.register({
+        fullName: formData.fullName,
+        age: parseInt(formData.age),
+        gender: formData.gender,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
+
+      const { token, user } = response.data;
+      login(token, user);
+      navigate('/calculator');
+    } catch (err: any) {
+      setError(
+        err.response?.data?.error ||
+        err.message ||
+        'Erro ao se cadastrar. Tente novamente.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <h1 className="text-3xl font-bold text-center mb-2 text-gray-900">Cadastro</h1>
+          <p className="text-center text-gray-600 mb-8">
+            Crie sua conta na Fitness Platform
+          </p>
+
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nome Completo
+              </label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                placeholder="Seu nome completo"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Idade
+                </label>
+                <input
+                  type="number"
+                  name="age"
+                  value={formData.age}
+                  onChange={handleChange}
+                  placeholder="18"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Genero
+                </label>
+                <select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecione</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Feminino">Feminino</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="seu.email@example.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Senha
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Minimo 6 caracteres"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirmar Senha
+              </label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirme sua senha"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+            >
+              {loading ? 'Cadastrando...' : 'Cadastrar'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-600 text-sm">
+              Ja tem conta?{' '}
+              <Link to="/login" className="text-blue-600 hover:text-blue-700 font-semibold">
+                Faca login aqui
+              </Link>
+            </p>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <button
+              onClick={() => navigate('/')}
+              className="w-full text-gray-600 hover:text-gray-900 font-semibold py-2 px-4"
+            >
+              ← Voltar para Home
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Register;
